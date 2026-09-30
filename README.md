@@ -14,7 +14,7 @@ Players only appear on each other's maps when they have **public position** enab
 
 ## Configuration
 
-Edit `com.martinkubo.minimapplayercolor.cfg` in the mod manager's config editor. Changes apply within a couple of seconds, without restarting the game.
+Edit `com.jakubecdev.minimapplayercolor.cfg` in the mod manager's config editor. Changes apply within a couple of seconds, without restarting the game.
 
 | Setting | What it does | Default |
 |---|---|---|

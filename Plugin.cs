@@ -9,7 +9,7 @@ namespace MinimapPlayerColor
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string PluginGuid = "com.martinkubo.minimapplayercolor";
+        public const string PluginGuid = "com.jakubecdev.minimapplayercolor";
         public const string PluginName = "MinimapPlayerColor";
         public const string PluginVersion = "0.1.0";
 
