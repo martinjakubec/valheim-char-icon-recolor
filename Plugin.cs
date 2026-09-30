@@ -11,7 +11,7 @@ namespace MinimapPlayerColor
     {
         public const string PluginGuid = "com.jakubecdev.minimapplayercolor";
         public const string PluginName = "MinimapPlayerColor";
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "1.0.0";
 
         internal static ManualLogSource Log;
 
