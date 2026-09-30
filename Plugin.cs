@@ -15,10 +15,13 @@ namespace MinimapPlayerColor
 
         internal static ManualLogSource Log;
 
-        /// <summary>Last valid colour read from the config.</summary>
-        internal static Color OwnColor = Color.white;
+        /// <summary>Last valid colours read from the config; unset parts use the game's own colours.</summary>
+        internal static PlayerColors OwnColors;
+
+        internal static ConfigEntry<bool> AllowAchievements;
 
         private static ConfigEntry<string> _colorConfig;
+        private static ConfigEntry<string> _gearColorConfig;
 
         private readonly Harmony _harmony = new Harmony(PluginGuid);
 
@@ -26,10 +29,16 @@ namespace MinimapPlayerColor
         {
             Log = Logger;
 
-            _colorConfig = Config.Bind("General", "Color", "#FFFFFF",
-                "Colour of your player icon on the map, as hex RRGGBB (e.g. #FF8800). Seen by other players who have this mod.");
+            _colorConfig = Config.Bind("General", "Color", "",
+                "Colour of the person in your map icon, your name label and your own arrow, as hex RRGGBB (e.g. #FF8800). Seen by other players who have this mod. Leave empty for the game's default.");
+            _gearColorConfig = Config.Bind("General", "GearColor", "",
+                "Colour of the sword and shield in your map icon, as hex RRGGBB. Seen by other players who have this mod. Leave empty for the game's default.");
             _colorConfig.SettingChanged += (_, __) => OnColorChanged();
-            ReadColor();
+            _gearColorConfig.SettingChanged += (_, __) => OnColorChanged();
+            ReadColors();
+
+            AllowAchievements = Config.Bind("General", "AllowAchievements", true,
+                "The game disables achievements when any mod is loaded. Enable this to keep earning them; cheats still disable achievements as usual.");
 
             _harmony.PatchAll();
             Log.LogInfo($"{PluginName} {PluginVersion} loaded");
@@ -39,20 +48,30 @@ namespace MinimapPlayerColor
         // outside the game (r2modman, text editor) apply without a restart.
         private void Update()
         {
+            ColorSync.Tick();
+
             if (Time.unscaledTime < _nextConfigCheck)
             {
                 return;
             }
             _nextConfigCheck = Time.unscaledTime + 1f;
 
-            System.DateTime written = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
-            if (written != _configWritten)
+            try
             {
-                if (_configWritten != default)
+                System.DateTime written = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                if (written != _configWritten)
                 {
-                    Config.Reload();
+                    if (_configWritten != default)
+                    {
+                        Config.Reload();
+                    }
+                    _configWritten = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
                 }
-                _configWritten = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+            }
+            catch (System.Exception e)
+            {
+                // The file can be locked or half-written while another program saves it; retry on the next check
+                Log.LogDebug($"Config reload skipped: {e.Message}");
             }
         }
 
@@ -66,22 +85,25 @@ namespace MinimapPlayerColor
 
         private static void OnColorChanged()
         {
-            if (ReadColor())
-            {
-                MinimapPatches.ApplyOwnMarkerColor();
-                ColorSync.BroadcastOwnColor();
-            }
+            ReadColors();
+            MinimapPatches.ApplyOwnMarkerColor();
+            ColorSync.BroadcastOwnColor();
         }
 
-        private static bool ReadColor()
+        private static void ReadColors()
         {
-            if (ColorSync.TryParse(_colorConfig.Value, out Color color))
+            Read(_colorConfig, ref OwnColors.Person);
+            Read(_gearColorConfig, ref OwnColors.Gear);
+        }
+
+        private static void Read(ConfigEntry<string> entry, ref Color? target)
+        {
+            if (ColorSync.TryParseOptional(entry.Value, out Color? color))
             {
-                OwnColor = color;
-                return true;
+                target = color;
+                return;
             }
-            Log.LogWarning($"Invalid colour '{_colorConfig.Value}', expected hex like #FF8800. Keeping the previous colour.");
-            return false;
+            Log.LogWarning($"Invalid {entry.Definition.Key} '{entry.Value}', expected hex like #FF8800. Keeping the previous colour.");
         }
     }
 }

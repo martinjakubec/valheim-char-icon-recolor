@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,20 +13,33 @@ namespace MinimapPlayerColor
         {
             private static void Postfix(Minimap __instance)
             {
+                if (PinSprites.IsOverCapacity)
+                {
+                    PinSprites.Clear();
+                }
                 // m_playerPins and m_tempPlayerInfo are index-aligned (see Minimap.UpdatePlayerPins)
                 int count = Mathf.Min(__instance.m_playerPins.Count, __instance.m_tempPlayerInfo.Count);
                 for (int i = 0; i < count; i++)
                 {
                     Minimap.PinData pin = __instance.m_playerPins[i];
-                    long userId = __instance.m_tempPlayerInfo[i].m_characterID.UserID;
-                    if (pin.m_iconElement == null || !ColorSync.TryGetColor(userId, out Color color))
+                    if (pin.m_iconElement == null)
                     {
                         continue;
                     }
-                    pin.m_iconElement.color = color;
-                    if (pin.m_NamePinData != null && pin.m_NamePinData.PinNameText != null)
+                    long userId = __instance.m_tempPlayerInfo[i].m_characterID.UserID;
+                    Sprite icon = pin.m_icon;
+                    if (ColorSync.TryGetColors(userId, out PlayerColors colors))
                     {
-                        pin.m_NamePinData.PinNameText.color = color;
+                        icon = PinSprites.Get(pin.m_icon, colors) ?? pin.m_icon;
+                        if (colors.Person.HasValue && pin.m_NamePinData != null && pin.m_NamePinData.PinNameText != null)
+                        {
+                            pin.m_NamePinData.PinNameText.color = colors.Person.Value;
+                        }
+                    }
+                    // Also restores the game's icon once a player goes back to default colours
+                    if (pin.m_iconElement.sprite != icon)
+                    {
+                        pin.m_iconElement.sprite = icon;
                     }
                 }
             }
@@ -34,24 +48,20 @@ namespace MinimapPlayerColor
         [HarmonyPatch(typeof(Minimap), nameof(Minimap.Start))]
         private static class Minimap_Start_Patch
         {
-            private static void Postfix()
+            private static void Postfix(Minimap __instance)
             {
+                // Remember the game's own arrow colours so an empty config can restore them
+                PinSprites.Clear();
+                VanillaMarkerColors.Clear();
+                Capture(__instance.m_smallMarker);
+                Capture(__instance.m_largeMarker);
                 ApplyOwnMarkerColor();
             }
         }
 
-        public static void ApplyOwnMarkerColor()
-        {
-            Minimap minimap = Minimap.instance;
-            if (minimap == null)
-            {
-                return;
-            }
-            Tint(minimap.m_smallMarker);
-            Tint(minimap.m_largeMarker);
-        }
+        private static readonly Dictionary<Image, Color> VanillaMarkerColors = new Dictionary<Image, Color>();
 
-        private static void Tint(RectTransform marker)
+        private static void Capture(RectTransform marker)
         {
             if (marker == null)
             {
@@ -59,7 +69,19 @@ namespace MinimapPlayerColor
             }
             foreach (Image image in marker.GetComponentsInChildren<Image>(includeInactive: true))
             {
-                image.color = Plugin.OwnColor;
+                VanillaMarkerColors[image] = image.color;
+                Plugin.Log.LogInfo($"Vanilla colour of {image.name}: #{ColorUtility.ToHtmlStringRGBA(image.color)}");
+            }
+        }
+
+        public static void ApplyOwnMarkerColor()
+        {
+            foreach (KeyValuePair<Image, Color> entry in VanillaMarkerColors)
+            {
+                if (entry.Key != null)
+                {
+                    entry.Key.color = Plugin.OwnColors.Person ?? entry.Value;
+                }
             }
         }
     }
