@@ -44,4 +44,17 @@
     <Warning Condition="!Exists('$(PluginDir)')" Text="Plugin not deployed: '$(PluginDir)' does not exist. Create the r2modman 'dev' profile with BepInExPack_Valheim, or fix R2Profile in Directory.Build.props." />
   </Target>
 
+  <!-- Release builds also produce the Thunderstore upload: bin\MinimapPlayerColor-<version>.zip -->
+  <Target Name="PackageThunderstore" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <PackageStaging>$(MSBuildProjectDirectory)\obj\thunderstore</PackageStaging>
+      <PackageZip>$(MSBuildProjectDirectory)\bin\$(AssemblyName)-$(Version).zip</PackageZip>
+    </PropertyGroup>
+    <RemoveDir Directories="$(PackageStaging)" />
+    <Copy SourceFiles="manifest.json;README.md;icon.png;$(TargetPath)" DestinationFolder="$(PackageStaging)" />
+    <Delete Files="$(PackageZip)" />
+    <ZipDirectory SourceDirectory="$(PackageStaging)" DestinationFile="$(PackageZip)" />
+    <Message Importance="high" Text="Thunderstore package: $(PackageZip)" />
+  </Target>
+
 </Project>

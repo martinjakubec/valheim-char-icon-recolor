@@ -1,0 +1,9 @@
+{
+  "name": "MinimapPlayerColor",
+  "version_number": "0.1.0",
+  "website_url": "",
+  "description": "Pick the colour of your player icon on the map. Other players with the mod see it too.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2351"
+  ]
+}
