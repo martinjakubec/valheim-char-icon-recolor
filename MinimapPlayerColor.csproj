@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>MinimapPlayerColor</AssemblyName>
+    <RootNamespace>MinimapPlayerColor</RootNamespace>
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <!-- Required for accessing publicized (originally private) game members -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Decompiled game code is reference material only -->
+  <ItemGroup>
+    <Compile Remove="decompiled\**" />
+  </ItemGroup>
+
+  <!-- Game assemblies: referenced from the install, never copied to output -->
+  <ItemGroup>
+    <Reference Include="assembly_valheim" HintPath="$(ValheimManaged)\assembly_valheim.dll" Private="false" Publicize="true" />
+    <Reference Include="assembly_utils" HintPath="$(ValheimManaged)\assembly_utils.dll" Private="false" Publicize="true" />
+    <Reference Include="assembly_guiutils" HintPath="$(ValheimManaged)\assembly_guiutils.dll" Private="false" Publicize="true" />
+    <Reference Include="UnityEngine" HintPath="$(ValheimManaged)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ValheimManaged)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" HintPath="$(ValheimManaged)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="UnityEngine.UIModule" HintPath="$(ValheimManaged)\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(ValheimManaged)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(ValheimManaged)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(ValheimManaged)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="Unity.TextMeshPro" HintPath="$(ValheimManaged)\Unity.TextMeshPro.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- Deploy the built plugin into the r2modman dev profile -->
+  <Target Name="DeployPlugin" AfterTargets="Build">
+    <Copy Condition="Exists('$(PluginDir)')" SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDir)\$(AssemblyName)" />
+    <Message Condition="Exists('$(PluginDir)')" Importance="high" Text="Deployed to $(PluginDir)\$(AssemblyName)" />
+    <Warning Condition="!Exists('$(PluginDir)')" Text="Plugin not deployed: '$(PluginDir)' does not exist. Create the r2modman 'dev' profile with BepInExPack_Valheim, or fix R2Profile in Directory.Build.props." />
+  </Target>
+
+</Project>
